@@ -65,9 +65,11 @@ class _LoginViewState extends State<LoginView> {
                   //verified email
                   Navigator.of(context)
                       .pushNamedAndRemoveUntil(notesRoute, (route) => false);
-                } //unverified email
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                    verifyEmailRoute, (route) => false);
+                } else {
+                  //unverified email
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                      verifyEmailRoute, (route) => false);
+                }
               } on UserNotFoundAuthException {
                 await showErrorDialog(context, 'User not found');
               } on WrongPasswordAuthException {

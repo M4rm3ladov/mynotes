@@ -14,25 +14,27 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Verify Email')),
-      body: Column(children: [
-        const Text(
-            "We've sent you an email verification. Please open to verify your account."),
-        const Text('Send Verification again.'),
-        TextButton(
+      body: Column(
+        children: [
+          const Text(
+              "We've sent you an email verification. Please open to verify your account."),
+          const Text('Send Verification again.'),
+          TextButton(
+              onPressed: () async {
+                final user = AuthService.firebase().currentUser;
+                await AuthService.firebase().sendEmailVerification();
+              },
+              child: const Text('Send email Verification')),
+          TextButton(
             onPressed: () async {
-              final user = AuthService.firebase().currentUser;
-              await AuthService.firebase().sendEmailVerification();
+              await AuthService.firebase().logout();
+              Navigator.of(context)
+                  .pushNamedAndRemoveUntil(registerRoute, (route) => false);
             },
-            child: const Text('Send email Verification')),
-        TextButton(
-          onPressed: () async {
-            await AuthService.firebase().logout();
-            Navigator.of(context)
-                .pushNamedAndRemoveUntil(registerRoute, (route) => false);
-          },
-          child: const Text('Restart'),
-        )
-      ]),
+            child: const Text('Restart'),
+          )
+        ],
+      ),
     );
   }
 }
