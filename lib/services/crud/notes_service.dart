@@ -11,13 +11,18 @@ class NotesService {
 
   List<DatabaseNote> _notes = [];
 
-  final _notesStreamConroller =
-      StreamController<List<DatabaseNote>>.broadcast();
+  late final StreamController<List<DatabaseNote>> _notesStreamConroller;
 
   Stream<List<DatabaseNote>> get allNotes => _notesStreamConroller.stream;
 
   static final NotesService _shared = NotesService._sharedInstace();
-  NotesService._sharedInstace();
+  NotesService._sharedInstace() {
+    _notesStreamConroller = StreamController<List<DatabaseNote>>.broadcast(
+      onListen: () {
+        _notesStreamConroller.sink.add(_notes);
+      },
+    );
+  }
   factory NotesService() => _shared;
 
   Future<DatabaseUser> getOrCreateUser({required String email}) async {
