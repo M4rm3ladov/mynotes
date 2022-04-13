@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
@@ -11,15 +10,16 @@ class NotesService {
 
   List<DatabaseNote> _notes = [];
 
-  late final StreamController<List<DatabaseNote>> _notesStreamConroller;
+  late final StreamController<List<DatabaseNote>> _notesStreamController;
 
-  Stream<List<DatabaseNote>> get allNotes => _notesStreamConroller.stream;
+  Stream<List<DatabaseNote>> get allNotes => _notesStreamController.stream;
 
   static final NotesService _shared = NotesService._sharedInstace();
+
   NotesService._sharedInstace() {
-    _notesStreamConroller = StreamController<List<DatabaseNote>>.broadcast(
+    _notesStreamController = StreamController<List<DatabaseNote>>.broadcast(
       onListen: () {
-        _notesStreamConroller.sink.add(_notes);
+        _notesStreamController.sink.add(_notes);
       },
     );
   }
@@ -40,7 +40,7 @@ class NotesService {
   Future<void> _cacheNotes() async {
     final allNotes = await getAllNotes();
     _notes = allNotes.toList();
-    _notesStreamConroller.add(_notes);
+    _notesStreamController.add(_notes);
   }
 
   Future<DatabaseNote> updateNote({
@@ -52,10 +52,14 @@ class NotesService {
     //make sure note exists
     await getNote(id: note.id);
     //update DB
-    final updatesCount = await db.update(noteTable, {
-      textColumn: text,
-      isSyncedWithCloudColumn: 0,
-    });
+    final updatesCount = await db.update(
+        noteTable,
+        {
+          textColumn: text,
+          isSyncedWithCloudColumn: 0,
+        },
+        where: 'id = ?',
+        whereArgs: [note.id]);
 
     if (updatesCount == 0) {
       throw CouldNotUpdateNoteException();
@@ -63,7 +67,7 @@ class NotesService {
       final updatedNote = await getNote(id: note.id);
       _notes.removeWhere((note) => note.id == updatedNote.id);
       _notes.add(updatedNote);
-      _notesStreamConroller.add(_notes);
+      _notesStreamController.add(_notes);
       return updatedNote;
     }
   }
@@ -74,7 +78,9 @@ class NotesService {
     final notes = await db.query(
       noteTable,
     );
-
+    for (var k in notes) {
+      print(k);
+    }
     return notes.map((noteRow) => DatabaseNote.fromRow(noteRow));
   }
 
@@ -94,7 +100,7 @@ class NotesService {
       final note = DatabaseNote.fromRow(notes.first);
       _notes.removeWhere((note) => note.id == id);
       _notes.add(note);
-      _notesStreamConroller.add(_notes);
+      _notesStreamController.add(_notes);
       return note;
     }
   }
@@ -123,7 +129,7 @@ class NotesService {
     );
 
     _notes.add(note);
-    _notesStreamConroller.add(_notes);
+    _notesStreamController.add(_notes);
 
     return note;
   }
@@ -141,7 +147,7 @@ class NotesService {
       throw CouldNotDeleteNoteException();
     } else {
       _notes.removeWhere((note) => note.id == id);
-      _notesStreamConroller.add(_notes);
+      _notesStreamController.add(_notes);
     }
   }
 
@@ -150,7 +156,7 @@ class NotesService {
     final db = _getDatabaseOrThrow();
     final numberOfDeletions = await db.delete(noteTable);
     _notes = [];
-    _notesStreamConroller.add(_notes);
+    _notesStreamController.add(_notes);
     return numberOfDeletions;
   }
 
@@ -218,6 +224,7 @@ class NotesService {
     try {
       final docsPath = await getApplicationDocumentsDirectory();
       final dbPath = join(docsPath.path, dbName);
+      print('db loc: ' + dbPath);
       final db = await openDatabase(dbPath);
       _db = db;
       //create user table
