@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+/// Define a function of Map<String, T?> (optional type can, take null)
 typedef DialogOptionBuilder<T> = Map<String, T?> Function();
 
+/// Generic Function widget for dialogs to delegate.
+/// Generates a dynamic number of buttons.
 Future<T?> showGenericDialog<T>({
   required BuildContext context,
   required String title,

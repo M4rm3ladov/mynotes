@@ -34,23 +34,28 @@ class _NotesViewState extends State<NotesView> {
                 Navigator.of(context).pushNamed(createOrUpdateNoteRoute);
               },
               icon: const Icon(Icons.add)),
-          PopupMenuButton<MenuAction>(onSelected: (value) async {
-            switch (value) {
-              case MenuAction.logout:
-                final shouldLogout = await showDeleteDialog(context);
-                if (shouldLogout) {
-                  await AuthService.firebase().logout();
-                  Navigator.of(context)
-                      .pushNamedAndRemoveUntil(loginRoute, (_) => false);
-                }
-                break;
-            }
-          }, itemBuilder: (context) {
-            return [
-              const PopupMenuItem<MenuAction>(
-                  value: MenuAction.logout, child: Text('Logout')),
-            ];
-          })
+          PopupMenuButton<MenuAction>(
+            onSelected: (value) async {
+              switch (value) {
+                case MenuAction.logout:
+                  final shouldLogout = await showDeleteDialog(context);
+                  if (shouldLogout) {
+                    await AuthService.firebase().logout();
+                    Navigator.of(context)
+                        .pushNamedAndRemoveUntil(loginRoute, (_) => false);
+                  }
+                  break;
+              }
+            },
+            itemBuilder: (context) {
+              return [
+                const PopupMenuItem<MenuAction>(
+                  value: MenuAction.logout,
+                  child: Text('Logout'),
+                ),
+              ];
+            },
+          ),
         ],
       ),
       body: FutureBuilder(
@@ -58,7 +63,7 @@ class _NotesViewState extends State<NotesView> {
           builder: (context, snapshot) {
             switch (snapshot.connectionState) {
               case ConnectionState.done:
-                return StreamBuilder(
+                return StreamBuilder( 
                     stream: _notesService.allNotes,
                     builder: (context, snapshot) {
                       switch (snapshot.connectionState) {

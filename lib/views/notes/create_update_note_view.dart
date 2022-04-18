@@ -14,9 +14,6 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
   DatabaseNote? _note;
   late final NotesService _notesService;
   late final TextEditingController _textController;
-  late final String _textHeaderTitle;
-  final _updateNoteText = 'Update Note';
-  final _newNoteText = 'New Note';
 
   @override
   void initState() {
@@ -29,13 +26,11 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
     final widgetNote = context.getArgument<DatabaseNote>();
 
     if (widgetNote != null) {
-      _textHeaderTitle = _updateNoteText;
       _note = widgetNote;
       _textController.text = widgetNote.text;
       return widgetNote;
     }
 
-    _textHeaderTitle = _newNoteText;
     final existingNote = _note;
     if (existingNote != null) return existingNote;
 
@@ -94,7 +89,7 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_textHeaderTitle),
+        title: const Text('New Note'),
       ),
       body: FutureBuilder(
         future: createOrGetExistingNote(context),

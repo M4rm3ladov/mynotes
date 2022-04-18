@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
+import 'package:mynotes/extensions/list/filter.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' show join;
@@ -7,15 +8,27 @@ import 'crud_exceptions.dart';
 
 class NotesService {
   Database? _db;
-
+  DatabaseUser? _user;
   List<DatabaseNote> _notes = [];
 
+  /// [StreamController] of type List<DatabaseNote> for widgets
   late final StreamController<List<DatabaseNote>> _notesStreamController;
 
-  Stream<List<DatabaseNote>> get allNotes => _notesStreamController.stream;
-
+  /// Getter
+  Stream<List<DatabaseNote>> get allNotes =>
+      _notesStreamController.stream.filter((note) {
+        final currentUser = _user;
+        if (currentUser != null) {
+          return note.userId == currentUser.id;
+        } else {
+          throw UserShouldBeSetBeforeReadingAllNotesException();
+        }
+      });
+  // Singleton pattern ensure only one instance throughtout.
+  /// Invokes [NotesService._sharedInstace()] Named constructor instance.
   static final NotesService _shared = NotesService._sharedInstace();
 
+  /// Named constructor to store callback function that adds [_notes] to [_notesStreamController]
   NotesService._sharedInstace() {
     _notesStreamController = StreamController<List<DatabaseNote>>.broadcast(
       onListen: () {
@@ -23,26 +36,34 @@ class NotesService {
       },
     );
   }
+
+  /// Factory constructor that returns a static final instance.
   factory NotesService() => _shared;
 
-  Future<DatabaseUser> getOrCreateUser({required String email}) async {
-    try {
-      final user = await getUser(email: email);
-      return user;
-    } on CouldNotFindUserException {
-      final createdUser = await createUser(email: email);
-      return createdUser;
-    } catch (e) {
-      rethrow;
-    }
-  }
-
+  // #region Notes DB
+  /// Await [getAllNotes] to return [allNotes] <Iterable<DatabaseNote>>.
+  ///
+  /// Store [allNotes] to [_notes] list and [_notes] to [_notesStreamController].
   Future<void> _cacheNotes() async {
     final allNotes = await getAllNotes();
     _notes = allNotes.toList();
     _notesStreamController.add(_notes);
   }
 
+  /// Await [_ensureDbIsOpen], if open return [_db] and store to [db] else throw exception.
+  ///
+  /// Await [getUser] to return to [DatabaseUser] [dbUser] and check if NOT equal to [owner]
+  /// throw [CouldNotFindUserException].
+  ///
+  /// Await [getNote] with [note.id] to check if note exists.
+  ///
+  /// Await [update] query of [db] with [noteTable], valued [text] and [isSyncedWithCloud] 0,
+  /// and [note.id] as arguments.To return (int) [updatesCount] affected rows.
+  ///
+  /// Check if [updatesCount] is 0 and throw [CouldNotUpdateNoteException] else
+  ///
+  /// Await on [getNote] to get [DatabaseNote][updatedNote]
+  /// Add [note] to [_notes] and [_notes] to [_notesStreamController] and return [updatedNote].
   Future<DatabaseNote> updateNote({
     required DatabaseNote note,
     required String text,
@@ -53,13 +74,14 @@ class NotesService {
     await getNote(id: note.id);
     //update DB
     final updatesCount = await db.update(
-        noteTable,
-        {
-          textColumn: text,
-          isSyncedWithCloudColumn: 0,
-        },
-        where: 'id = ?',
-        whereArgs: [note.id]);
+      noteTable,
+      {
+        textColumn: text,
+        isSyncedWithCloudColumn: 0,
+      },
+      where: 'id = ?',
+      whereArgs: [note.id],
+    );
 
     if (updatesCount == 0) {
       throw CouldNotUpdateNoteException();
@@ -72,6 +94,15 @@ class NotesService {
     }
   }
 
+  /// Await [_ensureDbIsOpen], if open return [_db] and store to [db] else throw exception.
+  ///
+  /// Await [getUser] to return to [DatabaseUser] [dbUser] and check if NOT equal to [owner]
+  /// throw [CouldNotFindUserException].
+  ///
+  /// Await [insert] query of [db] with [noteTable] as argument,
+  /// to return List<Map<String, Object?>>.
+  ///
+  /// Return <Iterable<DatabaseNote>>
   Future<Iterable<DatabaseNote>> getAllNotes() async {
     await _ensureDbIsOpen();
     final db = _getDatabaseOrThrow();
@@ -84,6 +115,20 @@ class NotesService {
     return notes.map((noteRow) => DatabaseNote.fromRow(noteRow));
   }
 
+  /// Await [_ensureDbIsOpen], if open return [_db] and store to [db] else throw exception.
+  ///
+  /// Await [getUser] to return to [DatabaseUser] [dbUser] and check if NOT equal to [owner]
+  /// throw [CouldNotFindUserException].
+  ///
+  /// Await query of [db] with [noteTable], 1, [id], as arguments,
+  /// to return List<Map<String, Object?>> [notes].
+  ///
+  /// Check if [notes] is empty and throw [CouldNotFindNoteException] else
+  /// Store instance of [DatabaseNote] to [note].
+  ///
+  /// Remove [note] from [_notes] with [id] and add the [note] instance to prevent duplication.
+  ///
+  /// Add [note] to [_notes] and [_notes] to [_notesStreamController] and return [note].
   Future<DatabaseNote> getNote({required int id}) async {
     await _ensureDbIsOpen();
     final db = _getDatabaseOrThrow();
@@ -105,6 +150,17 @@ class NotesService {
     }
   }
 
+  /// Await [_ensureDbIsOpen], if open return [_db] and store to [db] else throw exception.
+  ///
+  /// Await [getUser] to return to [DatabaseUser] [dbUser] and check if NOT equal to [owner]
+  /// throw [CouldNotFindUserException].
+  ///
+  /// Await [insert] query of [db] with [noteTable], [owner.id], [text], and 1 (true) as arguments,
+  /// to return (int) [noteId] last inserted id.
+  ///
+  /// Store instance of [DatabaseNote] to [note] with [noteId], [owner.id], [text], and, true as arguments.
+  ///
+  /// Add [note] to [_notes] and [_notes] to [_notesStreamController] and return [note].
   Future<DatabaseNote> createNote({required DatabaseUser owner}) async {
     await _ensureDbIsOpen();
     final db = _getDatabaseOrThrow();
@@ -134,6 +190,13 @@ class NotesService {
     return note;
   }
 
+  /// Await [_ensureDbIsOpen], if open return [_db] and store to [db] else throw exception.
+  ///
+  /// Await query of [db] with [noteTable] as argument,
+  /// await delete query tha returns (int) [deletedCount].
+  ///
+  /// Checks if [deletedCount] is 0 throw [CouldNotDeleteException],
+  /// else Remove items in [_notes] list with [id] and add it to [_notesStreamController]
   Future<void> deleteNote({required int id}) async {
     await _ensureDbIsOpen();
     final db = _getDatabaseOrThrow();
@@ -151,6 +214,12 @@ class NotesService {
     }
   }
 
+  /// Await [_ensureDbIsOpen], if open return [_db] and store to [db] else throw exception.
+  ///
+  /// Await query of [db] with [noteTable] as argument,
+  /// returns int rows [numberOfDeletions].
+  ///
+  /// Reset [_notes] to empty list and add it to [_notesStreamController]
   Future<int> deleteAllNotes() async {
     await _ensureDbIsOpen();
     final db = _getDatabaseOrThrow();
@@ -159,7 +228,41 @@ class NotesService {
     _notesStreamController.add(_notes);
     return numberOfDeletions;
   }
+  // #endregion
 
+  // #region User DB
+
+  /// ***Try block:***
+  /// - Get user [getUser] if [email] exists in db, else on [CouldNotFindUserException] return [createUser]
+  /// and store [DatabaseUser] instance in [_user].
+  /// ***Catch block:***
+  /// - rethrow
+  Future<DatabaseUser> getOrCreateUser({
+    required String email,
+    bool setAsCurrentUser = true,
+  }) async {
+    try {
+      final user = await getUser(email: email);
+      if (setAsCurrentUser) _user = user;
+      return user;
+    } on CouldNotFindUserException {
+      final createdUser = await createUser(email: email);
+      if (setAsCurrentUser) _user = createdUser;
+      return createdUser;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Await [_ensureDbIsOpen], if open return [_db] and store to [db] else throw exception.
+  ///
+  /// Await query of [db] with [userTable], 1 as row count, and [email] as arguments,
+  /// returns List<Map<String, Obj?>> rows(can state columns to return).
+  ///
+  /// If [results] is NOT empty then throw[UserAlreadyExistsException]
+  /// else await [insert] query with [userTable], and [email] and return [userId](last inserted id).
+  ///
+  /// Return instance of [DatabaseUser] with [userId], [email] as arguments.
   Future<DatabaseUser> createUser({required String email}) async {
     await _ensureDbIsOpen();
     final db = _getDatabaseOrThrow();
@@ -176,6 +279,13 @@ class NotesService {
     return DatabaseUser(id: userId, email: email);
   }
 
+  /// Await [_ensureDbIsOpen], if open return [_db] and store to [db] else throw exception.
+  ///
+  /// Await query of [db] with [userTable], 1 as row count, and [email] as arguments,
+  /// returns List<Map<String, Obj?>> rows(can state columns to return).
+  ///
+  /// If [results] is empty then throw[CouldNotFindUserException]
+  /// else return instance of [DatabaseUser] with first element of [results] as argument.
   Future<DatabaseUser> getUser({required String email}) async {
     await _ensureDbIsOpen();
     final db = _getDatabaseOrThrow();
@@ -192,6 +302,12 @@ class NotesService {
     }
   }
 
+  /// Await [_ensureDbIsOpen], if open return [_db] and store to [db] else throw exception.
+  ///
+  /// Await deletion of [db] with [userTable] and [email] as arguments,
+  /// returns row count deleted [deleteCount](int).
+  ///
+  /// If [deleteCount] is not 1 then throw[CouldNotDeleteException].
   Future<void> deleteUser({required String email}) async {
     await _ensureDbIsOpen();
     final db = _getDatabaseOrThrow();
@@ -207,18 +323,33 @@ class NotesService {
     }
   }
 
+  // #endregion
+
+  // #region Open or Close DB
+
+  /// Check if [db] is not null and return [db] else throw [DatabaseIsNotOpenException].
   Database _getDatabaseOrThrow() {
     final db = _db;
     if (db == null) throw DatabaseIsNotOpenException();
     return db;
   }
 
+  /// Invoke [open] or throw [DatabaseAlreadyOpenException].
   Future<void> _ensureDbIsOpen() async {
     try {
       await open();
     } on DatabaseAlreadyOpenException {}
   }
 
+  /// Ensure [_db] is not null else throw [DatabaseAlreadyOpenException].
+  ///
+  /// ***Try Block:***
+  /// - Await app directory and join path with [dbName].
+  /// - Await [openDatabase] with [dbPath] and store to [_db] and local var [db].
+  /// - Await excecution [execute] query of [createUserTable] and [createNoteTable] if tables non existent.
+  /// - Await invoke [_cacheNotes] to cache notes to [_notes] and [_notesStreamController]
+  /// ***Catch:***
+  /// - [MissingPlatformDirectoryException] throw [UnableToGetDocumentDirectoryException]
   Future<void> open() async {
     if (_db != null) throw DatabaseAlreadyOpenException();
     try {
@@ -238,6 +369,8 @@ class NotesService {
     }
   }
 
+  /// Store [_db] private property to local [db] var and throw [DatabaseIsNotOpenException] if null.
+  /// Else await [close] and assingn [_db] null.
   Future<void> close() async {
     final db = _db;
     if (db == null) {
@@ -247,25 +380,33 @@ class NotesService {
       _db = null;
     }
   }
+  // #endregion
 }
 
+/// Immutable [DatabaseUser] class for local sqlite storage.
+/// An app user.
 @immutable
 class DatabaseUser {
   final int id;
   final String email;
 
+  /// Generative constructor of [DatabaseUser]
   const DatabaseUser({
     required this.id,
     required this.email,
   });
 
+  /// Named Initializer constructor that takes a Map<String, Object> as arguments,
+  /// then initializing those in [id] and [email] properties.
   DatabaseUser.fromRow(Map<String, Object?> map)
       : id = map[idColumn] as int,
         email = map[emailColumn] as String;
 
+  /// Override [toString()] method to show [id] and [email] of instantiated user.
   @override
   String toString() => 'Person, id = $id, email = $email';
 
+  /// Override [operator ==] method to compare DatabaseUser objects.
   @override
   bool operator ==(covariant DatabaseUser other) => id == other.id;
 
@@ -273,12 +414,14 @@ class DatabaseUser {
   int get hashCode => id.hashCode;
 }
 
+/// [DatabaseNote] class for creating notes
 class DatabaseNote {
   final int id;
   final int userId;
   final String text;
   final bool isSyncedWithCloud;
 
+  /// Generative Constructor for [DatabaseNote] class
   DatabaseNote({
     required this.id,
     required this.userId,
@@ -286,6 +429,8 @@ class DatabaseNote {
     required this.isSyncedWithCloud,
   });
 
+  /// Named constructor initializer for [DatabaseNote]. Assigns Map<String, Object>
+  /// to [id], [userId], [text], [isSyncedWithCloud] properties.
   DatabaseNote.fromRow(Map<String, Object?> map)
       : id = map[idColumn] as int,
         userId = map[userIdColumn] as int,
@@ -293,10 +438,12 @@ class DatabaseNote {
         isSyncedWithCloud =
             (map[isSyncedWithCloudColumn] as int) == 1 ? true : false;
 
+  /// Override [toString()] method to show [id], [userId], [isSyncedWithCloud], and [text] of instantiated note.
   @override
   String toString() =>
       'Note, id = $id, userId = $userId, isSyncedWithCloud = $isSyncedWithCloud, text = $text';
 
+  /// Override [operator ==] method to compare DatabaseUser objects.
   @override
   bool operator ==(covariant DatabaseNote other) => id == other.id;
 
@@ -304,6 +451,7 @@ class DatabaseNote {
   int get hashCode => id.hashCode;
 }
 
+/// Defiinition of constants to be used in [NotesService] class
 const dbName = 'noted.db';
 const noteTable = 'note';
 const userTable = 'user';
