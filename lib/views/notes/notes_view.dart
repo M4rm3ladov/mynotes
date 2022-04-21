@@ -3,7 +3,7 @@ import 'package:mynotes/constants/routes.dart';
 import 'package:mynotes/enums/menu_action.dart';
 import 'package:mynotes/services/auth/auth_service.dart';
 import 'package:mynotes/services/crud/notes_service.dart';
-import 'package:mynotes/utilites/dialogs/delete_dialog.dart';
+import 'package:mynotes/utilites/dialogs/logout_dialog.dart';
 import 'package:mynotes/views/notes/notes_list_view.dart';
 
 class NotesView extends StatefulWidget {
@@ -15,7 +15,7 @@ class NotesView extends StatefulWidget {
 
 class _NotesViewState extends State<NotesView> {
   late final NotesService _notesService;
-  String get userEmail => AuthService.firebase().currentUser!.email!;
+  String get userEmail => AuthService.firebase().currentUser!.email;
 
   @override
   void initState() {
@@ -38,7 +38,7 @@ class _NotesViewState extends State<NotesView> {
             onSelected: (value) async {
               switch (value) {
                 case MenuAction.logout:
-                  final shouldLogout = await showDeleteDialog(context);
+                  final shouldLogout = await showLogoutDialog(context);
                   if (shouldLogout) {
                     await AuthService.firebase().logout();
                     Navigator.of(context)
@@ -63,7 +63,7 @@ class _NotesViewState extends State<NotesView> {
           builder: (context, snapshot) {
             switch (snapshot.connectionState) {
               case ConnectionState.done:
-                return StreamBuilder( 
+                return StreamBuilder(
                     stream: _notesService.allNotes,
                     builder: (context, snapshot) {
                       switch (snapshot.connectionState) {

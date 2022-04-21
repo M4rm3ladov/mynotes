@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:mynotes/extensions/list/filter.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
@@ -78,6 +79,7 @@ class NotesService {
       {
         textColumn: text,
         isSyncedWithCloudColumn: 0,
+        dateTimeModifiedColumn: DateTime.now().toString(),
       },
       where: 'id = ?',
       whereArgs: [note.id],
@@ -87,8 +89,11 @@ class NotesService {
       throw CouldNotUpdateNoteException();
     } else {
       final updatedNote = await getNote(id: note.id);
+      //_notes[_notes.indexWhere((note) => note.id == updatedNote.id)] =
+      //  _notes[0];
       _notes.removeWhere((note) => note.id == updatedNote.id);
-      _notes.add(updatedNote);
+      _notes.insert(0, updatedNote);
+      //_notes.add(updatedNote);
       _notesStreamController.add(_notes);
       return updatedNote;
     }
@@ -108,10 +113,9 @@ class NotesService {
     final db = _getDatabaseOrThrow();
     final notes = await db.query(
       noteTable,
+      orderBy: dateTimeModifiedColumn + ' DESC',
     );
-    for (var k in notes) {
-      print(k);
-    }
+    notes.map((noteRow) => print(DatabaseNote.fromRow(noteRow))).toList();
     return notes.map((noteRow) => DatabaseNote.fromRow(noteRow));
   }
 
@@ -143,8 +147,10 @@ class NotesService {
       throw CouldNotFindNoteException();
     } else {
       final note = DatabaseNote.fromRow(notes.first);
-      _notes.removeWhere((note) => note.id == id);
-      _notes.add(note);
+      final indexOfNote = _notes.indexWhere((note) => note.id == id);
+      _notes[indexOfNote] = note;
+      //_notes.removeWhere((note) => note.id == id);
+      //_notes.add(note);
       _notesStreamController.add(_notes);
       return note;
     }
@@ -176,15 +182,17 @@ class NotesService {
       userIdColumn: owner.id,
       textColumn: text,
       isSyncedWithCloudColumn: 1,
+      dateTimeModifiedColumn: DateTime.now().toString(),
     });
     final note = DatabaseNote(
       id: noteId,
       userId: owner.id,
       text: text,
       isSyncedWithCloud: true,
+      dateTimeModified: DateTime.now().toString(),
     );
-
-    _notes.add(note);
+    _notes.insert(0, note);
+    //_notes.add(note);
     _notesStreamController.add(_notes);
 
     return note;
@@ -415,33 +423,39 @@ class DatabaseUser {
 }
 
 /// [DatabaseNote] class for creating notes
+@immutable
 class DatabaseNote {
   final int id;
   final int userId;
   final String text;
   final bool isSyncedWithCloud;
+  final String dateTimeModified;
 
-  /// Generative Constructor for [DatabaseNote] class
-  DatabaseNote({
+  /// Generative Constructor for [DatabaseNote] class. Creation of new note.
+  const DatabaseNote({
     required this.id,
     required this.userId,
     required this.text,
     required this.isSyncedWithCloud,
+    required this.dateTimeModified,
   });
 
   /// Named constructor initializer for [DatabaseNote]. Assigns Map<String, Object>
   /// to [id], [userId], [text], [isSyncedWithCloud] properties.
+  ///
+  /// For Retreiving data from Sqlite.
   DatabaseNote.fromRow(Map<String, Object?> map)
       : id = map[idColumn] as int,
         userId = map[userIdColumn] as int,
         text = map[textColumn] as String,
         isSyncedWithCloud =
-            (map[isSyncedWithCloudColumn] as int) == 1 ? true : false;
+            (map[isSyncedWithCloudColumn] as int) == 1 ? true : false,
+        dateTimeModified = map[dateTimeModifiedColumn] as String;
 
   /// Override [toString()] method to show [id], [userId], [isSyncedWithCloud], and [text] of instantiated note.
   @override
   String toString() =>
-      'Note, id = $id, userId = $userId, isSyncedWithCloud = $isSyncedWithCloud, text = $text';
+      'Note, id = $id, userId = $userId, isSyncedWithCloud = $isSyncedWithCloud, text = $text, dateTimeModified = $dateTimeModified';
 
   /// Override [operator ==] method to compare DatabaseUser objects.
   @override
@@ -460,6 +474,7 @@ const emailColumn = 'email';
 const userIdColumn = 'user_id';
 const textColumn = 'text';
 const isSyncedWithCloudColumn = 'is_synced_with_cloud';
+const dateTimeModifiedColumn = 'date_time_modified';
 const createUserTable = ''' CREATE TABLE IF NOT EXISTS "user" (
         "id"	INTEGER NOT NULL,
         "email"	TEXT NOT NULL UNIQUE,
@@ -470,6 +485,7 @@ const createNoteTable = '''CREATE TABLE IF NOT EXISTS "note" (
         "user_id"	INTEGER NOT NULL,
         "text"	TEXT,
         "is_synced_with_cloud"	INTEGER NOT NULL DEFAULT 0,
+        "date_time_modified"	TEXT NOT NULL,
         FOREIGN KEY("user_id") REFERENCES "user"("id"),
         PRIMARY KEY("id" AUTOINCREMENT)
       );

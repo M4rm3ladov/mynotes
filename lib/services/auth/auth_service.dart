@@ -9,11 +9,20 @@ class AuthService implements AuthProvider {
   final AuthProvider provider;
 
   /// Generative constructor creates new instance
-  const AuthService(this.provider);
+  //const AuthService(this.provider);
 
   /// Factory constructor that gets the cached instance or creates new instance of [AuthService] class.
   /// It takes [FirebaseAuthProvider] instance as provider argument.
-  factory AuthService.firebase() => AuthService(FirebaseAuthProvider());
+  //factory AuthService.firebase() => AuthService(FirebaseAuthProvider());
+
+  static final AuthService _shared =
+      AuthService._sharedInstace(FirebaseAuthProvider());
+
+  /// Named constructor to store callback function that adds [_notes] to [_notesStreamController]
+  AuthService._sharedInstace(this.provider);
+
+  /// Factory constructor that returns a static final instance.
+  factory AuthService.firebase() => _shared;
 
   /// Defines the initialization of [Firebase] with optional argument of the currentPlatform.
   @override
