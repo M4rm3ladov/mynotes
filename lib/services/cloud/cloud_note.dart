@@ -9,12 +9,14 @@ class CloudNote {
   final String documentId;
   final String ownerUserId;
   final String text;
+  final Timestamp dateTimeModified;
 
   /// Generative Constructor for [CloudNote] class
   const CloudNote({
     required this.documentId,
     required this.ownerUserId,
     required this.text,
+    required this.dateTimeModified,
   });
 
   /// Named constructor initializer for [CloudNote]. Assigns QueryDocumentSnapshot<Map<String, dynamic>>.
@@ -22,5 +24,7 @@ class CloudNote {
   CloudNote.fromSnapshot(QueryDocumentSnapshot<Map<String, dynamic>> snapshot)
       : documentId = snapshot.id,
         ownerUserId = snapshot.data()[ownerUserIdFieldName],
-        text = snapshot.data()[textFieldName] as String;
+        text = snapshot.data()[textFieldName] as String,
+        dateTimeModified =
+            snapshot.data()[dateTimeModifiedFieldName] as Timestamp;
 }

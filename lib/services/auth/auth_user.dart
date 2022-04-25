@@ -1,7 +1,6 @@
 /// Expose only the User class from the api
 import 'package:firebase_auth/firebase_auth.dart' show User;
 import 'package:flutter/cupertino.dart';
-import 'package:mynotes/services/crud/notes_service.dart';
 
 /// [AuthUser] is used for separation of concern
 @immutable
@@ -28,7 +27,7 @@ class AuthUser {
     return _cache.putIfAbsent(
       user.uid,
       () => AuthUser(
-        id: userIdColumn,
+        id: user.uid,
         email: user.email!,
         isEmailVerified: user.emailVerified,
       ),

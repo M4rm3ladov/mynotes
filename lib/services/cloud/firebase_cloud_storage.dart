@@ -25,26 +25,57 @@ class FirebaseCloudStorage {
     }
   }
 
+  Future<void> deleteEmptyNote() async {
+    try {
+      await notes
+          .where(textFieldName.isEmpty)
+          .get()
+          .then((value) => value.docs.map((doc) => doc.reference.delete()));
+    } catch (e) {
+      throw CouldNotDeleteNoteException();
+    }
+  }
+
   Future<void> updateNote(
       {required String documentId, required String text}) async {
     try {
-      await notes.doc(documentId).update({textFieldName: text});
+      await notes.doc(documentId).update({
+        textFieldName: text,
+        dateTimeModifiedFieldName:
+            FieldValue.serverTimestamp(), //Timestamp.now(),
+      });
     } catch (e) {
       throw CouldNotUpdateNoteException();
     }
   }
 
-  void createNewNote({required String ownerUserId}) async {
-    await notes.add({
+  Future<CloudNote> createNewNote({required String ownerUserId}) async {
+    final document = await notes.add({
       ownerUserIdFieldName: ownerUserId,
       textFieldName: '',
+      dateTimeModifiedFieldName:
+          FieldValue.serverTimestamp(), //Timestamp.now(),
     });
+    final fetchedNote = await document.get();
+    return CloudNote(
+      documentId: fetchedNote.id,
+      ownerUserId: ownerUserId,
+      text: '',
+      dateTimeModified:
+          fetchedNote.data()![dateTimeModifiedFieldName] ?? Timestamp.now(),
+      //dateTimeModified: fetchedNote.data()![dateTimeModifiedFieldName],
+    );
   }
 
-  Stream<Iterable<CloudNote>> allNotes({required String ownerUserId}) =>
-      notes.snapshots().map((event) => event.docs
-          .map((doc) => CloudNote.fromSnapshot(doc))
-          .where((note) => note.ownerUserId == ownerUserId));
+  Stream<Iterable<CloudNote>> allNotes({required String ownerUserId}) {
+    return notes
+        .orderBy(dateTimeModifiedFieldName, descending: true)
+        .snapshots()
+        .where((snap) => !snap.metadata.hasPendingWrites)
+        .map((event) => event.docs
+            .map((doc) => CloudNote.fromSnapshot(doc))
+            .where((note) => note.ownerUserId == ownerUserId));
+  }
 
   Future<Iterable<CloudNote>> getNotes({required ownerUserId}) async {
     try {
@@ -56,13 +87,7 @@ class FirebaseCloudStorage {
           .get()
           .then(
             (value) => value.docs.map(
-              (doc) {
-                return CloudNote(
-                  documentId: doc.id,
-                  ownerUserId: doc.data()[ownerUserIdFieldName] as String,
-                  text: doc.data()[textFieldName] as String,
-                );
-              },
+              (doc) => CloudNote.fromSnapshot(doc),
             ),
           );
     } catch (e) {
