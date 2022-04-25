@@ -20,8 +20,8 @@ class _NotesViewState extends State<NotesView> {
 
   @override
   void initState() {
-    _notesService = FirebaseCloudStorage();
     super.initState();
+    _notesService = FirebaseCloudStorage();
   }
 
   @override
