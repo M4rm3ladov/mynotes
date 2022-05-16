@@ -89,13 +89,16 @@ class LoadingScreen {
 
     state?.insert(overlay);
 
-    return LoadingScreenController(close: () {
-      _text.close();
-      overlay.remove();
-      return true;
-    }, update: (text) {
-      _text.add(text);
-      return true;
-    });
+    return LoadingScreenController(
+      close: () {
+        _text.close();
+        overlay.remove();
+        return true;
+      },
+      update: (text) {
+        _text.add(text);
+        return true;
+      },
+    );
   }
 }

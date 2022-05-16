@@ -24,7 +24,7 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView>
     super.initState();
     _notesService = FirebaseCloudStorage();
     _textController = TextEditingController();
-    WidgetsBinding.instance!.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   Future<CloudNote> createOrGetExistingNote(BuildContext context) async {
@@ -101,7 +101,7 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView>
     //_saveNoteIfTextNotEmpty();
     _deleteNoteIfTextIsEmpty();
     _textController.dispose();
-    WidgetsBinding.instance!.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

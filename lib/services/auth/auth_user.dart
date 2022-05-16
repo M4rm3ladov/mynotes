@@ -17,26 +17,29 @@ class AuthUser {
     required this.isEmailVerified,
   });
 
-  static final Map<String, AuthUser> _cache = <String, AuthUser>{};
+  //static final Map<String, AuthUser> _cache = <String, AuthUser>{};
 
   /// A named factory constructor that creates new or takes a cached instance of User
   /// takes in a User as an argument
   ///
   /// Used in [AuthUser? get currentUser] signature
-  factory AuthUser.fromFirebase(User user) {
-    return _cache.putIfAbsent(
-      user.uid,
-      () => AuthUser(
-        id: user.uid,
-        email: user.email!,
-        isEmailVerified: user.emailVerified,
-      ),
-    );
-  }
-  // factory AuthUser.fromFirebase(User user) => AuthUser(
+  // factory AuthUser.fromFirebase(User user) {
+  //   return _cache.putIfAbsent(
+  //     user.uid,
+  //     () => AuthUser(
   //       id: user.uid,
   //       email: user.email!,
   //       isEmailVerified: user.emailVerified,
-  //     );
+  //     ),
+  //   );
+  // }
+  @override
+  String toString() =>
+      'Note, id = $id, email = $email, emailVerified = $isEmailVerified';
 
+  factory AuthUser.fromFirebase(User user) => AuthUser(
+        id: user.uid,
+        email: user.email!,
+        isEmailVerified: user.emailVerified,
+      );
 }

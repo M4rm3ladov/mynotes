@@ -74,4 +74,8 @@ class AuthService implements AuthProvider {
   /// Check if [Firebase] user exists then await [Firebase.sendEmailVerification] else throw[UserNotLoggedInAuthException]
   @override
   Future<void> sendEmailVerification() => provider.sendEmailVerification();
+
+  @override
+  Future<void> sendPasswordReset({required String toEmail}) =>
+      provider.sendPasswordReset(toEmail: toEmail);
 }
