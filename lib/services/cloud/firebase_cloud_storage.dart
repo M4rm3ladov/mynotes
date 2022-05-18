@@ -69,12 +69,11 @@ class FirebaseCloudStorage {
 
   Stream<Iterable<CloudNote>> allNotes({required String ownerUserId}) {
     return notes
+        .where(ownerUserIdFieldName, isEqualTo: ownerUserId)
         .orderBy(dateTimeModifiedFieldName, descending: true)
         .snapshots()
         .where((snap) => !snap.metadata.hasPendingWrites)
-        .map((event) => event.docs
-            .map((doc) => CloudNote.fromSnapshot(doc))
-            .where((note) => note.ownerUserId == ownerUserId));
+        .map((event) => event.docs.map((doc) => CloudNote.fromSnapshot(doc)));
   }
 
   Future<Iterable<CloudNote>> getNotes({required ownerUserId}) async {
