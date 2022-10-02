@@ -16,23 +16,24 @@ A mobile notes application built in Flutter
 
 ### SplashScreen
 
-![SplashScreen](https://github.com/M4rm3ladov/mynotes/blob/master/Screenshots/Splash%20Screen.jpg?raw=true)
+<img src="Screenshots/Splash Screen.jpg" width="400px" height="auto">
 
 ### Register
 
-![Register](https://github.com/M4rm3ladov/mynotes/blob/master/Screenshots/Register.jpg?raw=true)
+<img src="Screenshots/Register.jpg" width="400px" height="auto">
 
 ### Login
 
-![Login](https://github.com/M4rm3ladov/mynotes/blob/master/Screenshots/Login.jpg?raw=true)
+<img src="Screenshots/Login.jpg" width="400px" height="auto">
 
 ### Add Note
 
-![AddNote](https://github.com/M4rm3ladov/mynotes/blob/master/Screenshots/Add%20Note.jpg?raw=true)
+<img src="Screenshots/Add Note.jpg" width="400px" height="auto">
 
 ### Notes
 
-![Notes](https://github.com/M4rm3ladov/mynotes/blob/master/Screenshots/Home.jpg?raw=true)
+<img src="Screenshots/Home.jpg" width="400px" height="auto">
 
 ### Share
-![Share](https://github.com/M4rm3ladov/mynotes/blob/master/Screenshots/Share.jpg?raw=true)
+
+<img src="Screenshots/Share.jpg" width="400px" height="auto">
